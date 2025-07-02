@@ -1,0 +1,5 @@
+FUNCS:
+createCanvas() - default Canvas
+
+TODO:
+- screen size change event -> reinitialize
