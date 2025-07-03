@@ -1,3 +1,22 @@
+class Screen {
+  constructor(subScreens = {}) {
+    this.screen = 0; // 0 to display this screen, other indices for subscreens
+    this.subScreens = subScreens; 
+  }
+
+  keyPressed(keyCode) {
+    if (this.subScreens[this.screen] && typeof this.subScreens[this.screen].keyPressed === 'function') {
+      this.subScreens[this.screen].keyPressed(keyCode);
+    }
+  }
+
+  draw() {
+    if (this.subScreens[this.screen] && typeof this.subScreens[this.screen].draw === 'function') {
+      this.subScreens[this.screen].draw();
+    }
+  }
+}
+
 let lastMoveTime = 0;
 let moveInterval = 100;
 
@@ -10,14 +29,56 @@ const game = {
   screen: 1, // 1: main menu, 2: gameplay, 3: game over
   screens: {
     1: {
+      options: ['Start game', 'Instructions', 'Credits', 'Exit'],
+      optionSelected: 0, // Index of the currently selected option
+      selectOption: function () {
+        switch (this.optionSelected) {
+          case 0: // Start game
+            game.reset();
+            game.screen = 2;
+            break;
+          case 1: // Instructions
+            alert('Use arrow keys to control the snake. Eat food to grow and avoid walls and your own body.');
+            break;
+          case 2: // Credits
+            alert('Enjoy!');
+            break;
+          case 3: // Exit
+            window.close(); // Close the window (may not work in all browsers)
+            break;
+        }
+      },
+      
       draw: function () {
         background('white');
+        const options = this.options;
+        const optionSelected = this.optionSelected;
+
+        for (let i = 0; i < options.length; i++) {
+          const yPosition = height / 2 - (options.length / 2 - i) * 50; // Adjust spacing between options
+          fill(i === optionSelected ? 'blue' : 'black'); // Highlight selected option
+          text(options[i], width / 2, yPosition);
+        }
+      },
+
+      keyPressed: function (keyCode) {
+        switch (keyCode) {
+          case UP_ARROW:
+            this.optionSelected = (this.optionSelected - 1 + this.options.length) % this.options.length; // Move up in the menu
+            break;
+          case DOWN_ARROW:
+            this.optionSelected = (this.optionSelected + 1) % this.options.length; // Move down in the menu
+            break;
+          case ENTER:
+            this.selectOption();
+            break;
+        }
       }
     },
 
     2: {
       draw: function () {
-        background(Math.random()*255, Math.random()*255, Math.random()*255);
+        // background(Math.random()*255, Math.random()*255, Math.random()*255); -> get MDMA effect
 
         if (millis() - lastMoveTime > moveInterval) {
           lastMoveTime = millis();
@@ -26,13 +87,20 @@ const game = {
           // draw walls (game area)
           game.drawWalls(); 
           // draw snake
-          for (let i = 0; i < game.snake.length; i++) {
+          for (let i = 0; i < game.snake.length-1; i++) {
             const segment = game.snake.body[i];
             if (game.landscape) {
               rect(game.offset+segment.x*game.tileSize, segment.y*game.tileSize, game.tileSize, game.tileSize);
             } else {
               rect(segment.x*game.tileSize, game.offset+segment.y*game.tileSize, game.tileSize, game.tileSize);
             }
+          }
+          // draw snake's head
+          const head = game.snake.head;
+          if (game.landscape) {
+            image(img, game.offset+head.x*game.tileSize, head.y*game.tileSize, game.tileSize, game.tileSize);
+          } else {
+            image(img, head.x*game.tileSize, game.offset+head.y*game.tileSize, game.tileSize, game.tileSize);
           }
           // draw food
           if (game.landscape) {
@@ -85,13 +153,13 @@ const game = {
 };
 
 function initializeGameDimensions() {
-  game.landscape = windowWidth > windowHeight;
-  game.size = game.landscape ? windowHeight : windowWidth;
-  game.offset = game.landscape ? (windowWidth - windowHeight) / 2 : (windowHeight - windowWidth) / 2; // Calculate the offset for centering the game area
+  game.landscape = width > height;
+  game.size = game.landscape ? height : width;
+  game.offset = game.landscape ? (width - height) / 2 : (height - width) / 2; // Calculate the offset for centering the game area
   game.tileSize = game.size / 30;
 
   // handle user's viewport being almost a square
-  if (abs(windowWidth - windowHeight) < game.tileSize * 2) {
+  if (abs(width - height) < game.tileSize * 2) {
     alert("The screen should not be squarish for a proper game experience. Please use landscape or portrait mode and restart the page.");
     throw new Error("Invalid screen size for the game!");
   }
@@ -173,9 +241,10 @@ function initializeFood() {
   game.food.spawn(); // Initial spawn of food
 }
 
+let img;
 function preload() {
   // Load any assets here if needed
-
+  img = loadImage('./assets/images/catFaceRight.png');
 }
 
 function setup() {
@@ -199,11 +268,9 @@ function draw() {
 function keyPressed() {
   switch (game.screen) {
     case 1:
-      switch (keyCode) {
-        case ENTER:
-          game.screen = 2;
-      }
+      game.screens[1].keyPressed(keyCode); // delegate keyPress event to the main menu screen
       break;
+
     case 2:
       switch (keyCode) {
         case LEFT_ARROW:
