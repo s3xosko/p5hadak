@@ -1,15 +1,24 @@
-const game = {
-  width: 800, // Game width
-  height: 800, // Game height
-  tileSize: 25, // Size of each tile in the grid
+const game = {  
+  landscape: true, // Landscape mode (true) or portrait mode (false)
+  size: 0, // Size of the game area (are is a square => just one dimension needed)
+  offset: 0, // Offset for centering the game area
+  tileSize: 0, // Size of each tile in the grid
 
   screen: 1, // 1: main menu, 2: gameplay, 3: game over
+  screens: {},
+
   score: 0, // Player's score
   snake: null, // Snake object
   food: null, // Food object
   walls: null, // Walls object (not implemented yet)
   drawWalls: function () {
-    rect(0, 0, this.width, this.height); // Draw the game area
+    let gameGrid;
+    if (this.landscape) {
+      gameGrid = rect(this.offset, 0, this.size, this.size);
+    } else {
+      gameGrid = rect(0, this.offset, this.size, this.size); 
+    }
+    gameGrid.fill('white'); 
   },
   
   over: function() {
@@ -22,6 +31,19 @@ const game = {
 
   }
 };
+
+function initializeGameDimensions() {
+  game.landscape = windowWidth > windowHeight;
+  game.size = game.landscape ? windowHeight : windowWidth;
+  game.offset = game.landscape ? (windowWidth - windowHeight) / 2 : (windowHeight - windowWidth) / 2; // Calculate the offset for centering the game area
+  game.tileSize = game.size / 30;
+
+  // handle user's viewport being almost a square
+  if (abs(windowWidth - windowHeight) < game.tileSize * 2) {
+    alert("The screen should not be squarish for a proper game experience. Please use landscape or portrait mode and restart the page.");
+    throw new Error("Invalid screen size for the game!");
+  }
+}
 
 function initializeSnake() {
   tileSize = game.tileSize;
@@ -60,8 +82,8 @@ function initializeSnake() {
       this.head = newHead; // Set the new head
 
       // Check for collision with walls
-      if (this.head.x*game.tileSize < 0 || this.head.x*game.tileSize >= game.width 
-        || this.head.y*game.tileSize < 0 || this.head.y*game.tileSize >= game.height) {
+      if (this.head.x*game.tileSize < 0 || this.head.x*game.tileSize >= game.size 
+        || this.head.y*game.tileSize < 0 || this.head.y*game.tileSize >= game.size) {
         game.over();
       }
       // Check for collision with body
@@ -90,8 +112,8 @@ function initializeFood() {
       // Randomly place food in the grid, ensuring it doesn't overlap with the snake
       while ((this.position.x === game.snake.head.x && this.position.y === game.snake.head.y) ||
              game.snake.body.some(segment => segment.x === this.position.x && segment.y === this.position.y)) {
-        this.position.x = Math.floor(Math.random() * (game.width / game.tileSize));
-        this.position.y = Math.floor(Math.random() * (game.height / game.tileSize));
+        this.position.x = Math.floor(Math.random() * (game.size / game.tileSize));
+        this.position.y = Math.floor(Math.random() * (game.size / game.tileSize));
       }
     }
   };
@@ -108,10 +130,12 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  background('red');
+  console.log('w,h', windowWidth, windowHeight);
+
+  initializeGameDimensions(); 
   initializeSnake();
   initializeFood();
-  background('red');
-
 }
 
 
@@ -129,9 +153,18 @@ function draw() {
   game.drawWalls(); // Draw the walls (game area)
   for (let i = 0; i < game.snake.length; i++) {
     const segment = game.snake.body[i];
-    rect(segment.x*game.tileSize, segment.y*game.tileSize, game.tileSize, game.tileSize);
+    if (game.landscape) {
+      rect(game.offset+segment.x*game.tileSize, segment.y*game.tileSize, game.tileSize, game.tileSize);
+    } else {
+      rect(segment.x*game.tileSize, game.offset+segment.y*game.tileSize, game.tileSize, game.tileSize);
+    }
   }
-  circle(game.food.position.x*game.tileSize+game.tileSize/2, game.food.position.y*game.tileSize+game.tileSize/2, game.tileSize)
+  
+  if (game.landscape) {
+    circle(game.offset+game.food.position.x*game.tileSize+game.tileSize/2, game.food.position.y*game.tileSize+game.tileSize/2, game.tileSize)
+  } else {
+    circle(game.food.position.x*game.tileSize+game.tileSize/2, game.offset+game.food.position.y*game.tileSize+game.tileSize/2, game.tileSize);
+  }
 }
 
 // keyBoard events
@@ -167,5 +200,5 @@ function keyPressed() {
       break
   }
 
-  return false;
+  // return false;
 }
