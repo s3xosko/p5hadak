@@ -25,9 +25,9 @@ const game = {
 
 function initializeSnake() {
   tileSize = game.tileSize;
-  const head = {x: 15*tileSize, y: 15*tileSize};
+  const head = {x: 15, y: 15};
   game.snake = {
-    body: [{x: 13*tileSize, y: 15*tileSize}, {x: 14*tileSize, y: 15*tileSize}, head], // Snake's body segments
+    body: [{x: 13, y: 15}, {x: 14, y: 15}, head], // Snake's body segments
     length: 3,
     head: head, // Snake's head segment
 
@@ -42,16 +42,16 @@ function initializeSnake() {
 
       switch (this.newDirection) {
         case 'up':
-          newHead.y -= tileSize;
+          newHead.y -= 1;
           break;
         case 'down':
-          newHead.y += tileSize;
+          newHead.y += 1;
           break;
         case 'left':
-          newHead.x -= tileSize;
+          newHead.x -= 1;
           break;
         case 'right':
-          newHead.x += tileSize;
+          newHead.x += 1;
           break;
       }
       
@@ -60,7 +60,8 @@ function initializeSnake() {
       this.head = newHead; // Set the new head
 
       // Check for collision with walls
-      if (this.head.x < 0 || this.head.x >= game.width || this.head.y < 0 || this.head.y >= game.height) {
+      if (this.head.x*game.tileSize < 0 || this.head.x*game.tileSize >= game.width 
+        || this.head.y*game.tileSize < 0 || this.head.y*game.tileSize >= game.height) {
         game.over();
       }
       // Check for collision with body
@@ -89,8 +90,8 @@ function initializeFood() {
       // Randomly place food in the grid, ensuring it doesn't overlap with the snake
       while ((this.position.x === game.snake.head.x && this.position.y === game.snake.head.y) ||
              game.snake.body.some(segment => segment.x === this.position.x && segment.y === this.position.y)) {
-        this.position.x = Math.floor(Math.random() * (game.width / game.tileSize)) * game.tileSize;
-        this.position.y = Math.floor(Math.random() * (game.height / game.tileSize)) * game.tileSize;
+        this.position.x = Math.floor(Math.random() * (game.width / game.tileSize));
+        this.position.y = Math.floor(Math.random() * (game.height / game.tileSize));
       }
     }
   };
@@ -128,11 +129,12 @@ function draw() {
   game.drawWalls(); // Draw the walls (game area)
   for (let i = 0; i < game.snake.length; i++) {
     const segment = game.snake.body[i];
-    rect(segment.x, segment.y, game.tileSize, game.tileSize);
+    rect(segment.x*game.tileSize, segment.y*game.tileSize, game.tileSize, game.tileSize);
   }
-  circle(game.food.position.x+game.tileSize/2, game.food.position.y+game.tileSize/2, game.tileSize)
+  circle(game.food.position.x*game.tileSize+game.tileSize/2, game.food.position.y*game.tileSize+game.tileSize/2, game.tileSize)
 }
 
+// keyBoard events
 function keyPressed() {
   switch (keyCode) {
     case LEFT_ARROW:
