@@ -1,3 +1,6 @@
+let lastMoveTime = 0;
+let moveInterval = 100;
+
 const game = {  
   landscape: true, // Landscape mode (true) or portrait mode (false)
   size: 0, // Size of the game area (are is a square => just one dimension needed)
@@ -5,7 +8,51 @@ const game = {
   tileSize: 0, // Size of each tile in the grid
 
   screen: 1, // 1: main menu, 2: gameplay, 3: game over
-  screens: {},
+  screens: {
+    1: {
+      draw: function () {
+        background('white');
+      }
+    },
+
+    2: {
+      draw: function () {
+        background(Math.random()*255, Math.random()*255, Math.random()*255);
+
+        if (millis() - lastMoveTime > moveInterval) {
+          lastMoveTime = millis();
+          game.snake.move(); // Move the snake
+
+          // draw walls (game area)
+          game.drawWalls(); 
+          // draw snake
+          for (let i = 0; i < game.snake.length; i++) {
+            const segment = game.snake.body[i];
+            if (game.landscape) {
+              rect(game.offset+segment.x*game.tileSize, segment.y*game.tileSize, game.tileSize, game.tileSize);
+            } else {
+              rect(segment.x*game.tileSize, game.offset+segment.y*game.tileSize, game.tileSize, game.tileSize);
+            }
+          }
+          // draw food
+          if (game.landscape) {
+            circle(game.offset+game.food.position.x*game.tileSize+game.tileSize/2, game.food.position.y*game.tileSize+game.tileSize/2, game.tileSize)
+          } else {
+            circle(game.food.position.x*game.tileSize+game.tileSize/2, game.offset+game.food.position.y*game.tileSize+game.tileSize/2, game.tileSize);
+          }
+        }
+      
+        
+      }
+    },
+
+    3: {
+      draw: function () {
+        background('red');
+        text('You lost :((. Your score was ' + game.score, game.offset+game.size/2, game.size/2);
+      }
+    }
+  },
 
   score: 0, // Player's score
   snake: null, // Snake object
@@ -13,22 +60,27 @@ const game = {
   walls: null, // Walls object (not implemented yet)
   drawWalls: function () {
     let gameGrid;
+    strokeWeight(5);
     if (this.landscape) {
       gameGrid = rect(this.offset, 0, this.size, this.size);
     } else {
       gameGrid = rect(0, this.offset, this.size, this.size); 
     }
     gameGrid.fill('white'); 
+    strokeWeight(1);
   },
   
   over: function() {
-    this.screen = 3; // Switch to game over screen
-    noLoop(); // Stop the draw loop
-    alert("Game Over! Your score: " + this.score); // Display game over message
-    this.reset(); // Reset the game state
-  },
-  reset: function () {
 
+    this.screen = 3; // Switch to game over screen
+  },
+  
+  reset: function () {
+    initializeGameDimensions();
+    this.screen = 1;
+    this.score = 0;
+    initializeSnake();
+    initializeFood();
   }
 };
 
@@ -47,9 +99,9 @@ function initializeGameDimensions() {
 
 function initializeSnake() {
   tileSize = game.tileSize;
-  const head = {x: 15, y: 15};
+  const head = {x: 8, y: 15};
   game.snake = {
-    body: [{x: 13, y: 15}, {x: 14, y: 15}, head], // Snake's body segments
+    body: [{x: 6, y: 15}, {x: 7, y: 15}, head], // Snake's body segments
     length: 3,
     head: head, // Snake's head segment
 
@@ -121,8 +173,6 @@ function initializeFood() {
   game.food.spawn(); // Initial spawn of food
 }
 
-
-
 function preload() {
   // Load any assets here if needed
 
@@ -136,69 +186,67 @@ function setup() {
   initializeGameDimensions(); 
   initializeSnake();
   initializeFood();
+
+  textSize(32);
+  textAlign(CENTER, CENTER);
 }
 
-
-let lastMoveTime = 0;
-let moveInterval = 100;
 function draw() {
-  //let a = circle(200,200,100);
-
-
-  if (millis() - lastMoveTime > moveInterval) {
-    lastMoveTime = millis();
-    game.snake.move(); // Move the snake
-  }
-
-  game.drawWalls(); // Draw the walls (game area)
-  for (let i = 0; i < game.snake.length; i++) {
-    const segment = game.snake.body[i];
-    if (game.landscape) {
-      rect(game.offset+segment.x*game.tileSize, segment.y*game.tileSize, game.tileSize, game.tileSize);
-    } else {
-      rect(segment.x*game.tileSize, game.offset+segment.y*game.tileSize, game.tileSize, game.tileSize);
-    }
-  }
-  
-  if (game.landscape) {
-    circle(game.offset+game.food.position.x*game.tileSize+game.tileSize/2, game.food.position.y*game.tileSize+game.tileSize/2, game.tileSize)
-  } else {
-    circle(game.food.position.x*game.tileSize+game.tileSize/2, game.offset+game.food.position.y*game.tileSize+game.tileSize/2, game.tileSize);
-  }
+  game.screens[game.screen].draw();
 }
 
 // keyBoard events
 function keyPressed() {
-  switch (keyCode) {
-    case LEFT_ARROW:
-      if (game.snake.direction !== 'right' && game.snake.direction !== 'left') {
-        game.snake.newDirection = 'left'; // Change direction to left
+  switch (game.screen) {
+    case 1:
+      switch (keyCode) {
+        case ENTER:
+          game.screen = 2;
       }
       break;
-    case RIGHT_ARROW:
-      if (game.snake.direction !== 'left' && game.snake.direction !== 'right') {
-        game.snake.newDirection = 'right'; // Change direction to right
+    case 2:
+      switch (keyCode) {
+        case LEFT_ARROW:
+          if (game.snake.direction !== 'right' && game.snake.direction !== 'left') {
+            game.snake.newDirection = 'left'; // Change direction to left
+          }
+          break;
+        case RIGHT_ARROW:
+          if (game.snake.direction !== 'left' && game.snake.direction !== 'right') {
+            game.snake.newDirection = 'right'; // Change direction to right
+          }
+          break;
+        case UP_ARROW:
+          if (game.snake.direction !== 'down' && game.snake.direction !== 'up') {
+            game.snake.newDirection = 'up'; // Change direction to up
+          }
+          break;
+        case DOWN_ARROW:
+          if (game.snake.direction !== 'up' && game.snake.direction !== 'down') {
+            game.snake.newDirection = 'down'; // Change direction to down
+          }
+          break;
+        case 83: // 's' key
+          console.info('Stopping the game');
+          noLoop(); // Stop the draw loop
+          break;
+        case 82: // 'r' key
+          console.info('Resuming the game');
+          loop(); // Resume the draw loop
+          break
+      };
+      break;
+    case 3:
+      switch (keyCode) {
+        case ESCAPE:
+          game.reset();
+          game.screen = 1;
+          break;
+        case ENTER:
+          game.reset();
+          game.screen = 2;
+          break;
       }
-      break;
-    case UP_ARROW:
-      if (game.snake.direction !== 'down' && game.snake.direction !== 'up') {
-        game.snake.newDirection = 'up'; // Change direction to up
-      }
-      break;
-    case DOWN_ARROW:
-      if (game.snake.direction !== 'up' && game.snake.direction !== 'down') {
-        game.snake.newDirection = 'down'; // Change direction to down
-      }
-      break;
-    case 83: // 's' key
-      console.warn('Stopping the game');
-      noLoop(); // Stop the draw loop
-      break;
-    case 82: // 'r' key
-      console.error('Resuming the game');
-      loop(); // Resume the draw loop
-      break
   }
-
   // return false;
 }
