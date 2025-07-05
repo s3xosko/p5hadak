@@ -1,132 +1,165 @@
+let screens = {};
 class Screen {
-  constructor(subScreens = {}) {
-    this.screen = 0; // 0 to display this screen, other indices for subscreens
+  constructor(name, subScreens = {}, sounds = {}) {
+    this.name = name;
+    this.activeScreenIndex = -1;          // -1 = not active, 0 = display this screen, x = display sub-screen with index x
     this.subScreens = subScreens; 
-  }
-
-  keyPressed(keyCode) {
-    if (this.subScreens[this.screen] && typeof this.subScreens[this.screen].keyPressed === 'function') {
-      this.subScreens[this.screen].keyPressed(keyCode);
-    }
-  }
-
-  draw() {
-    if (this.subScreens[this.screen] && typeof this.subScreens[this.screen].draw === 'function') {
-      this.subScreens[this.screen].draw();
-    }
+    
+    this.draw = () => {};                 // Function that handles drawing of this screen
+    this.keyPressed = (keyCode) => {};    // Function that handles key presses when this screen is active
+    
+    this.sounds = sounds;
+    this.playSound = (soundName) => {};
+    this.backgroundSound = null;
+    this.playBackgroundSound = (soundName) => {};
   }
 }
 
-let lastMoveTime = 0;
-let moveInterval = 100;
+class MainMenu extends Screen {
+  constructor() {
+    super('Main Menu');
+    this.options = ['Start game', 'Instructions', 'Credits', 'Exit'];
+    this.optionSelected = 0; // Index of the currently selected option
 
-const game = {  
-  landscape: true, // Landscape mode (true) or portrait mode (false)
-  size: 0, // Size of the game area (are is a square => just one dimension needed)
-  offset: 0, // Offset for centering the game area
-  tileSize: 0, // Size of each tile in the grid
-
-  screen: 1, // 1: main menu, 2: gameplay, 3: game over
-  screens: {
-    1: {
-      options: ['Start game', 'Instructions', 'Credits', 'Exit'],
-      optionSelected: 0, // Index of the currently selected option
-      selectOption: function () {
-        switch (this.optionSelected) {
-          case 0: // Start game
-            game.reset();
-            game.screen = 2;
-            break;
-          case 1: // Instructions
-            alert('Use arrow keys to control the snake. Eat food to grow and avoid walls and your own body.');
-            break;
-          case 2: // Credits
-            alert('Enjoy!');
-            break;
-          case 3: // Exit
-            window.close(); // Close the window (may not work in all browsers)
-            break;
-        }
-      },
-      
-      draw: function () {
-        background('white');
-        const options = this.options;
-        const optionSelected = this.optionSelected;
-
-        for (let i = 0; i < options.length; i++) {
-          const yPosition = height / 2 - (options.length / 2 - i) * 50; // Adjust spacing between options
-          fill(i === optionSelected ? 'blue' : 'black'); // Highlight selected option
-          text(options[i], width / 2, yPosition);
-        }
-      },
-
-      keyPressed: function (keyCode) {
-        switch (keyCode) {
-          case UP_ARROW:
-            this.optionSelected = (this.optionSelected - 1 + this.options.length) % this.options.length; // Move up in the menu
-            break;
-          case DOWN_ARROW:
-            this.optionSelected = (this.optionSelected + 1) % this.options.length; // Move down in the menu
-            break;
-          case ENTER:
-            this.selectOption();
-            break;
-        }
+    this.selectOption = () => {
+      switch (this.optionSelected) {
+        case 0: // Start game
+          game.activeScreenIndex = 2;
+          break;
+        case 1: // Instructions
+          alert('Use arrow keys to control the snake. Eat food to grow and avoid walls and your own body.');
+          break;
+        case 2: // Credits
+          alert('Enjoy!');
+          break;
+        case 3: // Exit
+          window.close(); // Close the window (may not work in all browsers)
+          break;
       }
-    },
+    };
 
-    2: {
-      draw: function () {
-        // background(Math.random()*255, Math.random()*255, Math.random()*255); -> get MDMA effect
+    this.draw = () => {
+      background('white');
+      const options = this.options;
+      const optionSelected = this.optionSelected;
 
-        if (millis() - lastMoveTime > moveInterval) {
-          lastMoveTime = millis();
-          game.snake.move(); // Move the snake
+      for (let i = 0; i < options.length; i++) {
+        const yPosition = height / 2 - (options.length / 2 - i) * 50; // Adjust spacing between options
+        fill(i === optionSelected ? 'blue' : 'black'); // Highlight selected option
+        text(options[i], width / 2, yPosition);
+      }
+    };
 
-          // draw walls (game area)
-          game.drawWalls(); 
-          // draw snake
-          for (let i = 0; i < game.snake.length-1; i++) {
-            const segment = game.snake.body[i];
-            if (game.landscape) {
-              rect(game.offset+segment.x*game.tileSize, segment.y*game.tileSize, game.tileSize, game.tileSize);
-            } else {
-              rect(segment.x*game.tileSize, game.offset+segment.y*game.tileSize, game.tileSize, game.tileSize);
-            }
-          }
-          // draw snake's head
-          const head = game.snake.head;
+    this.keyPressed = (keyCode) => {
+      switch (keyCode) {
+        case UP_ARROW:
+          this.optionSelected = (this.optionSelected - 1 + this.options.length) % this.options.length; // Move up in the menu
+          break;
+        case DOWN_ARROW:
+          this.optionSelected = (this.optionSelected + 1) % this.options.length; // Move down in the menu
+          break;
+        case ENTER:
+          this.selectOption();
+          break;
+      }
+    };
+  }
+}
+
+class Gameplay extends Screen {
+  constructor() {
+    super('Gameplay');
+    
+    this.draw = () => {
+      // background(Math.random()*255, Math.random()*255, Math.random()*255); -> get MDMA effect
+
+      if (millis() - lastMoveTime > moveInterval) {
+        lastMoveTime = millis();
+        const alive = game.snake.move(); // Move the snake
+        if (!alive) {
+          game.over(); 
+        }
+
+        // draw walls (game area)
+        game.drawWalls(); 
+        // draw snake
+        for (let i = 0; i < game.snake.length-1; i++) {
+          const segment = game.snake.body[i];
           if (game.landscape) {
-            image(img, game.offset+head.x*game.tileSize, head.y*game.tileSize, game.tileSize, game.tileSize);
+            rect(game.offset+segment.x*game.tileSize, segment.y*game.tileSize, game.tileSize, game.tileSize);
           } else {
-            image(img, head.x*game.tileSize, game.offset+head.y*game.tileSize, game.tileSize, game.tileSize);
-          }
-          // draw food
-          if (game.landscape) {
-            circle(game.offset+game.food.position.x*game.tileSize+game.tileSize/2, game.food.position.y*game.tileSize+game.tileSize/2, game.tileSize)
-          } else {
-            circle(game.food.position.x*game.tileSize+game.tileSize/2, game.offset+game.food.position.y*game.tileSize+game.tileSize/2, game.tileSize);
+            rect(segment.x*game.tileSize, game.offset+segment.y*game.tileSize, game.tileSize, game.tileSize);
           }
         }
-      
-        
+        // draw snake's head
+        const head = game.snake.head;
+        if (game.landscape) {
+          image(img, game.offset+head.x*game.tileSize, head.y*game.tileSize, game.tileSize, game.tileSize);
+        } else {
+          image(img, head.x*game.tileSize, game.offset+head.y*game.tileSize, game.tileSize, game.tileSize);
+        }
+        // draw food
+        if (game.landscape) {
+          circle(game.offset+game.food.position.x*game.tileSize+game.tileSize/2, game.food.position.y*game.tileSize+game.tileSize/2, game.tileSize)
+        } else {
+          circle(game.food.position.x*game.tileSize+game.tileSize/2, game.offset+game.food.position.y*game.tileSize+game.tileSize/2, game.tileSize);
+        }
       }
-    },
+    };
+  }
+}
 
-    3: {
-      draw: function () {
-        background('red');
-        text('You lost :((. Your score was ' + game.score, game.offset+game.size/2, game.size/2);
-      }
-    }
-  },
+class GameOver extends Screen {
+  constructor() {
+    super('Game Over');
+    
+    this.draw = () => {
+      background('red');
+      text('You lost :((. Your score was ' + game.score, game.offset+game.size/2, game.size/2);
+    };
+  }
+}
 
-  score: 0, // Player's score
-  snake: null, // Snake object
-  food: null, // Food object
-  walls: null, // Walls object (not implemented yet)
-  drawWalls: function () {
+class Game {
+  constructor() {
+    // game dimensions properties
+    this.landscape = true, // Landscape mode (true) or portrait mode (false)
+    this.size = 0, // Size of the game area (area is a square => just one dimension needed)
+    this.offset = 0, // Offset for centering the game area
+    this.tileSize = 0, // Size of each tile in the grid
+    
+    // gameplay properties
+    this.score = 0; // Player's score
+    this.snake = null; // Snake object
+    this.food = null; // Food object
+    this.walls = null; // Walls object (not implemented yet)
+
+    // game screens
+    this.activeScreenIndex = 1; // 1: main menu, 2: gameplay, 3: game over
+    this.subScreens = {};
+
+    this.reset(); // Initialize game dimensions, snake, and food
+  }
+
+  reset() {
+    this._initializeDimensions();
+    this._initializeSnake();
+    this._initializeFood();
+    this._initializeSubScreens();
+
+    this.score = 0;
+    this.activeScreenIndex = 1;
+  }
+
+  over() {
+    this.activeScreenIndex = 3; // Switch to game over screen
+  }
+
+  draw() {
+    this.subScreens[this.activeScreenIndex].draw(); // delegate draw event to the active screen
+  }
+
+  drawWalls() {
     let gameGrid;
     strokeWeight(5);
     if (this.landscape) {
@@ -136,109 +169,179 @@ const game = {
     }
     gameGrid.fill('white'); 
     strokeWeight(1);
-  },
-  
-  over: function() {
-
-    this.screen = 3; // Switch to game over screen
-  },
-  
-  reset: function () {
-    initializeGameDimensions();
-    this.screen = 1;
-    this.score = 0;
-    initializeSnake();
-    initializeFood();
   }
-};
+  
+  keyPressed(keyCode) {
+    switch (this.activeScreenIndex) {
+      case 1:
+        this.subScreens[1].keyPressed(keyCode); // delegate keyPress event to the main menu screen
+        break;
+  
+      case 2:
+        switch (keyCode) {
+          case LEFT_ARROW:
+            if (this.snake.direction !== 'right' && this.snake.direction !== 'left') {
+              this.snake.newDirection = 'left'; // Change direction to left
+            }
+            break;
+          case RIGHT_ARROW:
+            if (this.snake.direction !== 'left' && this.snake.direction !== 'right') {
+              this.snake.newDirection = 'right'; // Change direction to right
+            }
+            break;
+          case UP_ARROW:
+            if (this.snake.direction !== 'down' && this.snake.direction !== 'up') {
+              this.snake.newDirection = 'up'; // Change direction to up
+            }
+            break;
+          case DOWN_ARROW:
+            if (this.snake.direction !== 'up' && this.snake.direction !== 'down') {
+              this.snake.newDirection = 'down'; // Change direction to down
+            }
+            break;
+          case 83: // 's' key
+            console.info('Stopping the game');
+            noLoop(); // Stop the draw loop
+            break;
+          case 82: // 'r' key
+            console.info('Resuming the game');
+            loop(); // Resume the draw loop
+            break
+        };
+        break;
+      case 3:
+        switch (keyCode) {
+          case ESCAPE:
+            this.reset();
+            this.activeScreenIndex = 1;
+            break;
+          case ENTER:
+            this.reset();
+            this.activeScreenIndex = 2;
+            break;
+        }
+    }
+    // return false;
+  }
 
-function initializeGameDimensions() {
-  game.landscape = width > height;
-  game.size = game.landscape ? height : width;
-  game.offset = game.landscape ? (width - height) / 2 : (height - width) / 2; // Calculate the offset for centering the game area
-  game.tileSize = game.size / 30;
+  _initializeDimensions() {
+    this.landscape = width > height;
+    this.size = this.landscape ? height : width;
+    this.offset = this.landscape ? (width - height) / 2 : (height - width) / 2; // Calculate the offset for centering the game area
+    this.numOfTiles = 30;
+    this.tileSize = this.size / this.numOfTiles;
 
-  // handle user's viewport being almost a square
-  if (abs(width - height) < game.tileSize * 2) {
-    alert("The screen should not be squarish for a proper game experience. Please use landscape or portrait mode and restart the page.");
-    throw new Error("Invalid screen size for the game!");
+    // handle user's viewport being almost a square
+    if (abs(width - height) < this.tileSize * 2) {
+      alert("The screen should not be squarish for a proper game experience. Please use landscape or portrait mode and restart the page.");
+      throw new Error("Invalid screen size for the game!");
+    }
+  }
+
+  _initializeSnake() {
+    this.snake = new Snake(this.numOfTiles, () => {
+      this.score++; // Update score when the snake eats food
+    });
+    
+    // Ensure the snake's head and body are initialized correctly
+    this.snake.head = {x: 8, y: 15};
+    this.snake.body = [{x: 6, y: 15}, {x: 7, y: 15}, this.snake.head];
+    this.snake.length = 3;
+    
+    // Initialize the snake's direction
+    this.snake.direction = 'right';
+    this.snake.newDirection = 'right';
+  }
+  
+  // must be called after this._initializeSnake()!
+  _initializeFood() {
+    this.food = new Food(this.numOfTiles);
+    this.food.spawn(this.snake.head, this.snake.body); // Initial spawn of food
+  }
+
+  _initializeSubScreens() {
+    this.subScreens[1] = new MainMenu();
+    this.subScreens[2] = new Gameplay();
+    this.subScreens[3] = new GameOver();
   }
 }
 
-function initializeSnake() {
-  tileSize = game.tileSize;
-  const head = {x: 8, y: 15};
-  game.snake = {
-    body: [{x: 6, y: 15}, {x: 7, y: 15}, head], // Snake's body segments
-    length: 3,
-    head: head, // Snake's head segment
+class Snake {
+  constructor(gridSize, updateScore) {
+    this.gridSize = gridSize; // Number of tiles in the grid (grid is square => just one dimension needed)
+    this.updateScore = updateScore; // Callback to update the game score when the snake eats food
+    
+    this.head = {};
+    this.body = [];
+    this.length = 0;
 
     // two properties to prevent possibility of snake trying to move in the opposite direction as he is currently moving
-    direction: 'right', // Current direction the snake moved
-    newDirection: 'right', // New direction to be set by key presses 
+    this.direction = '';
+    this.newDirection = '';
+  }
+
+  move() {
+    const newHead = {x: this.head.x, y: this.head.y};
     
-    move: function() {
-      const newHead = {x: this.head.x, y: this.head.y};
-      console.log('direction', this.newDirection);
-      // Move the head in the new direction
-
-      switch (this.newDirection) {
-        case 'up':
-          newHead.y -= 1;
-          break;
-        case 'down':
-          newHead.y += 1;
-          break;
-        case 'left':
-          newHead.x -= 1;
-          break;
-        case 'right':
-          newHead.x += 1;
-          break;
-      }
-      
-      this.direction = this.newDirection; 
-      this.body.push(newHead); // Add newHead to the body
-      this.head = newHead; // Set the new head
-
-      // Check for collision with walls
-      if (this.head.x*game.tileSize < 0 || this.head.x*game.tileSize >= game.size 
-        || this.head.y*game.tileSize < 0 || this.head.y*game.tileSize >= game.size) {
-        game.over();
-      }
-      // Check for collision with body
-      if (this.body.slice(0, -1).some(segment => segment.x === this.head.x && segment.y === this.head.y)) {
-        game.over();
-      }
-      
-      // Check for collision with food
-      if (this.head.x === game.food.position.x && this.head.y === game.food.position.y) {
-        this.length++;
-        game.score++;
-        game.food.spawn(); // Respawn food
-      } else {
-        this.body.shift(); // Remove the tail segment if the snake hasn't eaten 
-      }
+    console.log('direction', this.newDirection);
+    // move the head in the new direction
+    switch (this.newDirection) {
+      case 'up':
+        newHead.y -= 1;
+        break;
+      case 'down':
+        newHead.y += 1;
+        break;
+      case 'left':
+        newHead.x -= 1;
+        break;
+      case 'right':
+        newHead.x += 1;
+        break;
     }
-  };
+    
+    this.direction = this.newDirection; 
+    this.body.push(newHead); // Add newHead to the body
+    this.head = newHead; // Set the new head
+
+    // Check for collision with walls
+    if (this.head.x < 0 || this.head.x >= this.gridSize 
+      || this.head.y < 0 || this.head.y >= this.gridSize) {
+      return false;
+    }
+    // Check for collision with body
+    if (this.body.slice(0, -1).some(segment => segment.x === this.head.x && segment.y === this.head.y)) {
+      return false;
+    }
+    
+    // Check for collision with food
+    const food = game.food;
+    if (this.head.x === food.position.x && this.head.y === food.position.y) {
+      this.length++;
+      this.updateScore();
+      food.spawn(this.head, this.body); // Respawn food
+    } else {
+      this.body.shift(); // Remove the tail segment if the snake hasn't eaten
+    }
+
+    return true; // Snake is still alive
+  }
 }
 
-// must be called after initializeSnake() !
-function initializeFood() {
-  game.food = {
-    position: {x: game.snake.head.x, y: game.snake.head.y},
+class Food {
+  constructor(gridSize) {
+    this.gridSize = gridSize; // Number of tiles in the grid (grid is square => just one dimension needed)
+    this.position = {x: 0, y: 0}; // Position of the food in the grid
+  }
 
-    spawn: function() {
-      // Randomly place food in the grid, ensuring it doesn't overlap with the snake
-      while ((this.position.x === game.snake.head.x && this.position.y === game.snake.head.y) ||
-             game.snake.body.some(segment => segment.x === this.position.x && segment.y === this.position.y)) {
-        this.position.x = Math.floor(Math.random() * (game.size / game.tileSize));
-        this.position.y = Math.floor(Math.random() * (game.size / game.tileSize));
-      }
-    }
-  };
-  
-  game.food.spawn(); // Initial spawn of food
+  spawn(snakeHead, snakeBody) {
+    // Randomly place food in the grid, ensuring it doesn't overlap with the snake
+    do {
+      this.position.x = Math.floor(Math.random() * this.gridSize);
+      this.position.y = Math.floor(Math.random() * this.gridSize);
+    } while ((this.position.x === snakeHead.x && this.position.y === snakeHead.y) ||
+             snakeBody.some(segment => segment.x === this.position.x && segment.y === this.position.y));
+  }
 }
 
 let img;
@@ -247,73 +350,25 @@ function preload() {
   img = loadImage('./assets/images/catFaceRight.png');
 }
 
+let game = {};
+let lastMoveTime = 0;
+let moveInterval = 100;
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  background('red');
   console.log('w,h', windowWidth, windowHeight);
 
-  initializeGameDimensions(); 
-  initializeSnake();
-  initializeFood();
+  game = new Game();
 
   textSize(32);
   textAlign(CENTER, CENTER);
 }
 
 function draw() {
-  game.screens[game.screen].draw();
+  game.draw(); // delegate draw call to the game object
 }
 
 // keyBoard events
 function keyPressed() {
-  switch (game.screen) {
-    case 1:
-      game.screens[1].keyPressed(keyCode); // delegate keyPress event to the main menu screen
-      break;
-
-    case 2:
-      switch (keyCode) {
-        case LEFT_ARROW:
-          if (game.snake.direction !== 'right' && game.snake.direction !== 'left') {
-            game.snake.newDirection = 'left'; // Change direction to left
-          }
-          break;
-        case RIGHT_ARROW:
-          if (game.snake.direction !== 'left' && game.snake.direction !== 'right') {
-            game.snake.newDirection = 'right'; // Change direction to right
-          }
-          break;
-        case UP_ARROW:
-          if (game.snake.direction !== 'down' && game.snake.direction !== 'up') {
-            game.snake.newDirection = 'up'; // Change direction to up
-          }
-          break;
-        case DOWN_ARROW:
-          if (game.snake.direction !== 'up' && game.snake.direction !== 'down') {
-            game.snake.newDirection = 'down'; // Change direction to down
-          }
-          break;
-        case 83: // 's' key
-          console.info('Stopping the game');
-          noLoop(); // Stop the draw loop
-          break;
-        case 82: // 'r' key
-          console.info('Resuming the game');
-          loop(); // Resume the draw loop
-          break
-      };
-      break;
-    case 3:
-      switch (keyCode) {
-        case ESCAPE:
-          game.reset();
-          game.screen = 1;
-          break;
-        case ENTER:
-          game.reset();
-          game.screen = 2;
-          break;
-      }
-  }
-  // return false;
+  game.keyPressed(keyCode); // delegate keyPress event to the game object
 }
