@@ -3,11 +3,11 @@ class Screen {
   constructor(name, subScreens = {}, sounds = {}) {
     this.name = name;
     this.activeScreenIndex = -1;          // -1 = not active, 0 = display this screen, x = display sub-screen with index x
-    this.subScreens = subScreens; 
-    
+    this.subScreens = subScreens;
+
     this.draw = () => {};                 // Function that handles drawing of this screen
     this.keyPressed = (keyCode) => {};    // Function that handles key presses when this screen is active
-    
+
     this.sounds = sounds;
     this.playSound = (soundName) => {};
     this.backgroundSound = null;
@@ -69,19 +69,21 @@ class MainMenu extends Screen {
 class Gameplay extends Screen {
   constructor() {
     super('Gameplay');
-    
+
     this.draw = () => {
       // background(Math.random()*255, Math.random()*255, Math.random()*255); -> get MDMA effect
 
       if (millis() - lastMoveTime > moveInterval) {
+        background(255);
+
         lastMoveTime = millis();
         const alive = game.snake.move(); // Move the snake
         if (!alive) {
-          game.over(); 
+          game.over();
         }
 
         // draw walls (game area)
-        game.drawWalls(); 
+        game.drawWalls();
         // draw snake
         for (let i = 0; i < game.snake.length-1; i++) {
           const segment = game.snake.body[i];
@@ -112,7 +114,7 @@ class Gameplay extends Screen {
 class GameOver extends Screen {
   constructor() {
     super('Game Over');
-    
+
     this.draw = () => {
       background('red');
       text('You lost :((. Your score was ' + game.score, game.offset+game.size/2, game.size/2);
@@ -127,7 +129,7 @@ class Game {
     this.size = 0, // Size of the game area (area is a square => just one dimension needed)
     this.offset = 0, // Offset for centering the game area
     this.tileSize = 0, // Size of each tile in the grid
-    
+
     // gameplay properties
     this.score = 0; // Player's score
     this.snake = null; // Snake object
@@ -165,18 +167,18 @@ class Game {
     if (this.landscape) {
       gameGrid = rect(this.offset, 0, this.size, this.size);
     } else {
-      gameGrid = rect(0, this.offset, this.size, this.size); 
+      gameGrid = rect(0, this.offset, this.size, this.size);
     }
-    gameGrid.fill('white'); 
+    gameGrid.fill('white');
     strokeWeight(1);
   }
-  
+
   keyPressed(keyCode) {
     switch (this.activeScreenIndex) {
       case 1:
         this.subScreens[1].keyPressed(keyCode); // delegate keyPress event to the main menu screen
         break;
-  
+
       case 2:
         switch (keyCode) {
           case LEFT_ARROW:
@@ -242,17 +244,17 @@ class Game {
     this.snake = new Snake(this.numOfTiles, () => {
       this.score++; // Update score when the snake eats food
     });
-    
+
     // Ensure the snake's head and body are initialized correctly
     this.snake.head = {x: 8, y: 15};
     this.snake.body = [{x: 6, y: 15}, {x: 7, y: 15}, this.snake.head];
     this.snake.length = 3;
-    
+
     // Initialize the snake's direction
     this.snake.direction = 'right';
     this.snake.newDirection = 'right';
   }
-  
+
   // must be called after this._initializeSnake()!
   _initializeFood() {
     this.food = new Food(this.numOfTiles);
@@ -270,7 +272,7 @@ class Snake {
   constructor(gridSize, updateScore) {
     this.gridSize = gridSize; // Number of tiles in the grid (grid is square => just one dimension needed)
     this.updateScore = updateScore; // Callback to update the game score when the snake eats food
-    
+
     this.head = {};
     this.body = [];
     this.length = 0;
@@ -282,7 +284,7 @@ class Snake {
 
   move() {
     const newHead = {x: this.head.x, y: this.head.y};
-    
+
     console.log('direction', this.newDirection);
     // move the head in the new direction
     switch (this.newDirection) {
@@ -299,13 +301,13 @@ class Snake {
         newHead.x += 1;
         break;
     }
-    
-    this.direction = this.newDirection; 
+
+    this.direction = this.newDirection;
     this.body.push(newHead); // Add newHead to the body
     this.head = newHead; // Set the new head
 
     // Check for collision with walls
-    if (this.head.x < 0 || this.head.x >= this.gridSize 
+    if (this.head.x < 0 || this.head.x >= this.gridSize
       || this.head.y < 0 || this.head.y >= this.gridSize) {
       return false;
     }
@@ -313,7 +315,7 @@ class Snake {
     if (this.body.slice(0, -1).some(segment => segment.x === this.head.x && segment.y === this.head.y)) {
       return false;
     }
-    
+
     // Check for collision with food
     const food = game.food;
     if (this.head.x === food.position.x && this.head.y === food.position.y) {
@@ -362,13 +364,129 @@ function setup() {
 
   textSize(32);
   textAlign(CENTER, CENTER);
+
+  angleMode(DEGREES);
+
+  getRotationPermission();
 }
 
+const rotationThreshold = 20;
+
+let rotationWorks = false;
+let defaultRotationX = undefined;
+let lastRotationPress = undefined;
+
 function draw() {
+  if (rotationWorks) {
+    const adjRotX = rotationX - defaultRotationX;
+    const adjRotY = rotationY;
+
+    let rotationPress = undefined;
+
+    const rotationDist = sqrt(adjRotX * adjRotX + adjRotY * adjRotY);
+
+    if (rotationDist >= rotationThreshold) {
+      if (adjRotX < 0 && -adjRotX > abs(adjRotY)) {
+        rotationPress = 'up'
+      } else if (adjRotX > 0 && adjRotX > abs(adjRotY)) {
+        rotationPress = 'down'
+      }
+      if (adjRotY < 0 && -adjRotY > abs(adjRotX)) {
+        rotationPress = 'left'
+      } else if (adjRotY > 0 && adjRotY > abs(adjRotX)) {
+        rotationPress = 'right'
+      }
+
+      if (rotationPress !== lastRotationPress) {
+        if (rotationPress === 'up') {
+          game.keyPressed(UP_ARROW);
+        } else if (rotationPress === 'down') {
+          game.keyPressed(DOWN_ARROW);
+        } else if (rotationPress === 'left') {
+          game.keyPressed(LEFT_ARROW);
+        } else if (rotationPress === 'right') {
+          game.keyPressed(RIGHT_ARROW);
+        }
+      }
+
+      lastRotationPress = rotationPress;
+    } else {
+      lastRotationPress = undefined;
+    }
+  }
+
   game.draw(); // delegate draw call to the game object
+
+  if (rotationWorks) {
+    push();
+
+    const adjRotX = rotationX - defaultRotationX;
+    const adjRotY = rotationY;
+
+    const rotationDist = sqrt(adjRotX * adjRotX + adjRotY * adjRotY);
+
+    const cx = windowWidth / 2;
+    const cy = windowHeight * 0.8;
+    const r = 50;
+
+    const dx = r * (adjRotX / rotationThreshold);
+    const dy = r * (adjRotY / rotationThreshold);
+
+    stroke(150);
+    strokeWeight(5);
+    noFill()
+    circle(cx, cy, r * 2);
+
+    noStroke();
+    if (rotationDist >= rotationThreshold) {
+      fill(100, 225, 150);
+    } else {
+      fill(150);
+    }
+
+    circle(cx + dy, cy + dx, r * 0.2);
+
+    // if (lastRotationPress !== undefined) {
+    //   text(lastRotationPress, windowWidth / 2, windowHeight * 0.8 - 25);
+    // }
+    // text(round(defaultRotationX), windowWidth / 2, windowHeight * 0.8);
+    // text(round(rotationY), windowWidth / 2, windowHeight * 0.8 + 25);
+
+    pop();
+  }
 }
 
 // keyBoard events
 function keyPressed() {
   game.keyPressed(keyCode); // delegate keyPress event to the game object
+}
+
+function touchEnded() {
+  game.keyPressed(ENTER);
+}
+
+// toto nie je moj kod, niektore casti nechapem
+// je odtialto: https://editor.p5js.org/ambikajo/sketches/5_HWA0Wzv
+function getRotationPermission() {
+  let button = createButton("klikni sem pls");
+  button.style("font-size", "24px");
+  button.center();
+  button.mousePressed(requestAccess);
+}
+
+function requestAccess() {
+  text('debug 1', windowWidth / 2, windowHeight * 0.1);
+  DeviceOrientationEvent.requestPermission()
+    .then(response => {
+      text('debug 2 ' + response, windowWidth / 2, windowHeight * 0.3);
+      if (response == 'granted') {
+        rotationWorks = true;
+        defaultRotationX = rotationX;
+      } else {
+        rotationWorks = false;
+      }
+    })
+    .catch(console.error);
+
+  this.remove();
 }
