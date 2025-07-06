@@ -212,7 +212,7 @@ class Game {
   }
 
   draw() {
-    // background(Math.random()*255, Math.random()*255, Math.random()*255); -> get MDMA effect
+    // background(Math.random()*255, Math.random()*255, Math.random()*255); //-> get MDMA effect
 
     if (millis() - this.lastMoveTime > this.moveInterval) {
       this.lastMoveTime = millis();
@@ -418,6 +418,9 @@ let screenManager = null; // Global variable to manage screens
 function setup() {
   createCanvas(windowWidth, windowHeight);
   console.log('Width =', width, 'Height =', height);
+  console.log('Is an iphone -' + /iPhone/i.test(navigator.userAgent));
+  console.log('Is an android -' + /Android/i.test(navigator.userAgent));
+  console.log('Is a mobile phone -' + /Mobile/i.test(navigator.userAgent)); // didn't work with Ipad
 
   screenManager = new ScreenManager();
   screenManager.addScreen('mainMenu', new MainMenu());
