@@ -82,7 +82,6 @@ class MainMenu extends Screen {
   selectOption() {
     switch (this.optionSelected) {
       case 0: // Start game
-        // game.activeScreenIndex = 2; // Switch to gameplay screen
         screenManager.setActiveScreen('gameplay');
         break;
       case 1: // Instructions
@@ -127,7 +126,6 @@ class MainMenu extends Screen {
 class Gameplay extends Screen {
   constructor() {
     super('gameplay');
-
     this.game = new Game();
   }
   
@@ -161,7 +159,6 @@ class GameOver extends Screen {
   
   draw() {
     background('red');
-    
     text('You lost :((. Your score was ' + this.gainedScore + '!', this.textPosX, this.textPosY);
   }
 
@@ -190,6 +187,8 @@ class Game {
     this.snake = null; // Snake object
     this.food = null; // Food object
     this.walls = null; // Walls object (not implemented yet)
+    this.lastMoveTime = 0;
+    this.moveInterval = 100;
   }
 
   reset() {
@@ -215,8 +214,8 @@ class Game {
   draw() {
     // background(Math.random()*255, Math.random()*255, Math.random()*255); -> get MDMA effect
 
-    if (millis() - lastMoveTime > moveInterval) {
-      lastMoveTime = millis();
+    if (millis() - this.lastMoveTime > this.moveInterval) {
+      this.lastMoveTime = millis();
       const alive = this.snake.move(); // Move the snake
       if (!alive) {
         this.over(); 
@@ -323,7 +322,7 @@ class Game {
     this.snake.newDirection = 'right';
   }
   
-  // must be called after this._initializeSnake()!
+  // must be called after this._initializeSnake() to correctly spawn the food!
   _initializeFood() {
     this.food = new Food(this);
     this.food.spawn(this.snake.head, this.snake.body); // Initial spawn of food
@@ -396,7 +395,7 @@ class Food {
   constructor(game) {
     this.game = game
     this.gridSize = game.numOfTiles; // Number of tiles in the grid (grid is square => just one dimension needed)
-    this.position = {x: 0, y: 0}; // Position of the food in the grid
+    this.position = {x: -1, y: -1}; // Position of the food in the grid
   }
 
   spawn(snakeHead, snakeBody) {
@@ -416,10 +415,6 @@ function preload() {
 }
 
 let screenManager = null; // Global variable to manage screens
-let game = {};
-let lastMoveTime = 0;
-let moveInterval = 100;
-
 function setup() {
   createCanvas(windowWidth, windowHeight);
   console.log('Width =', width, 'Height =', height);
