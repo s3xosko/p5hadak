@@ -1,9 +1,6 @@
-let screens = {};
 class Screen {
-  constructor(name, subScreens = {}, sounds = {}) {
+  constructor(name, sounds = {}) {
     this.name = name;
-    this.activeScreenIndex = -1;          // -1 = not active, 0 = display this screen, x = display sub-screen with index x
-    this.subScreens = subScreens; 
     
     this.draw = () => {};                 // Function that handles drawing of this screen
     this.keyPressed = (keyCode) => {};    // Function that handles key presses when this screen is active
@@ -12,6 +9,66 @@ class Screen {
     this.playSound = (soundName) => {};
     this.backgroundSound = null;
     this.playBackgroundSound = (soundName) => {};
+  }
+}
+
+class ScreenManager {
+  constructor() {
+    this.screens = {};
+    this.activeScreen = null;
+  }
+
+  getScreen(name) {
+    if (this.screens[name]) {
+      return this.screens[name];
+    } else {
+      console.error(`Screen "${name}" does not exist.`);
+      return null;
+    }
+  }
+
+  addScreen(screenProperties) {
+    const name = screenProperties.name;
+    const sounds = screenProperties.sounds;
+    if (this.screens[name]) {
+      console.warn(`Screen "${name}" already exists. Overwriting.`);
+    }
+    
+    const screen = new Screen(name, sounds);
+    this.screens[name] = screen;
+
+    return screen;
+  }
+
+  removeScreen(name) {
+    if (this.screens[name]) {
+      delete this.screens[name];
+      if (this.activeScreen && this.activeScreen.name === name) {
+        this.activeScreen = null;
+      }
+    } else {
+      console.error(`Screen "${name}" does not exist.`);
+    }
+  }
+
+  setActiveScreen(name) {
+    if (this.screens[name]) {
+      this.activeScreen = this.screens[name];
+    } else {
+      console.error(`Screen "${name}" does not exist.`);
+    }
+  }
+
+  draw() {
+    if (this.activeScreen) {
+      this.activeScreen.draw();
+    }
+  }
+
+  keyPressed(keyCode) {
+    if (this.activeScreen) {
+      this.activeScreen.keyPressed(keyCode);
+    }
   }
 }
 
@@ -350,6 +407,7 @@ function preload() {
   img = loadImage('./assets/images/catFaceRight.png');
 }
 
+let screenManager = new ScreenManager();
 let game = {};
 let lastMoveTime = 0;
 let moveInterval = 100;
