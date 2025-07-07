@@ -100,7 +100,8 @@ class WebpageLoaded extends Screen {
   }
   
   keyPressed(keyCode) {
-    this.mousePressed();
+    // saddly does not activate the user audio
+    // this.mousePressed();
   }
 
   mousePressed() {
