@@ -1,0 +1,1 @@
+The css and javascript files in this folder are used to define the loading screen that is displayed to the user during the run of the p5's preload() function.

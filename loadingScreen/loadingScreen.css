@@ -1,0 +1,28 @@
+#p5_loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+}
+  
+#loading-spinner {
+    display: block;
+    margin: 0 auto;
+    animation: spin 4s linear infinite; /* 360° in 4s = 90°/s */
+    width: 200px;
+    height: 200px;
+}
+  
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+  
+#loading-text {
+    margin-top: 12px;
+    font-family: sans-serif;
+    font-size: 32px;
+    color: #333;
+}

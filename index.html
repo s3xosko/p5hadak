@@ -4,15 +4,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Sketch</title>
+    <title>Onyx the Snake</title>
 
     <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="loadingScreen/loadingScreen.css">
 
     <script src="libraries/p5.min.js"></script>
     <script src="libraries/p5.sound.min.js"></script>
   </head>
 
   <body>
+    <div id="p5_loading">
+      <img src="./assets/images/onyx_drugger.png" alt="" id="loading-spinner">
+      <div id="loading-text">Loading . . .</div>
+    </div>
+
     <script src="sketch.js"></script>
+    <script src="loadingScreen/loadingScreen.js"></script>
   </body>
 </html>

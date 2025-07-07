@@ -9,6 +9,7 @@ class Screen {
   onDeactivation() {};                  // Method that should be called when the screen is becoming inactive
   draw() {};                            // Method that handles drawing of the screen
   keyPressed(keyCode) {};               // Method that handles key presses 
+  mousePressed() {};                    // Method that handles mouse presses
   
   playSound(soundName) {};
   playBackgroundSound(soundName) {};
@@ -70,13 +71,57 @@ class ScreenManager {
   keyPressed(keyCode) {
     this.activeScreen.keyPressed(keyCode);
   }
+
+  mousePressed() {
+    this.activeScreen.mousePressed();
+  }
+}
+
+class WebpageLoaded extends Screen {
+  constructor() {
+    super('webpageLoaded');
+  }
+
+  draw() {
+    background('white');
+    // imageMode(CENTER);
+    image(
+      img,
+      width/2-50, height/2-50,
+      100, 100
+    );
+    fill(0);
+    textSize(32);
+    textAlign(CENTER, CENTER);
+    text(
+      "Click to start!",
+      width/2, height/2 + 75
+    );
+  }
+  
+  keyPressed(keyCode) {
+    this.mousePressed();
+  }
+
+  mousePressed() {
+    screenManager.setActiveScreen('mainMenu'); // Transition to the main menu
+  }
 }
 
 class MainMenu extends Screen {
-  constructor() {
+  constructor(backgroundSound) {
     super('mainMenu');
+    this.backgroundSound = backgroundSound;
     this.options = ['Start game', 'Instructions', 'Credits', 'Exit'];
     this.optionSelected = 0; // Index of the currently selected option
+  }
+
+  onActivation() {
+    this.backgroundSound.loop();
+  }
+
+  onDeactivation() {
+    this.backgroundSound.stop();
   }
   
   selectOption() {
@@ -124,13 +169,20 @@ class MainMenu extends Screen {
 }
 
 class Gameplay extends Screen {
-  constructor() {
+  constructor(backgroundSound) {
     super('gameplay');
+    this.backgroundSound = backgroundSound;
     this.game = new Game();
   }
   
   onActivation() {
+    background('white');
     this.game.reset();
+    this.backgroundSound.loop();
+  }
+  
+  onDeactivation() {
+    this.backgroundSound.stop();
   }
 
   draw() {
@@ -180,6 +232,7 @@ class Game {
     this.landscape = true, // Landscape mode (true) or portrait mode (false)
     this.size = 0, // Size of the game area (area is a square => just one dimension needed)
     this.offset = 0, // Offset for centering the game area
+    this.numOfTiles = 0, // Number of tiles in the grid (grid is square => just one dimension needed)
     this.tileSize = 0, // Size of each tile in the grid
     
     // gameplay properties
@@ -251,12 +304,12 @@ class Game {
   drawWalls() {
     let gameGrid;
     strokeWeight(5);
+    fill('white');
     if (this.landscape) {
       gameGrid = rect(this.offset, 0, this.size, this.size);
     } else {
       gameGrid = rect(0, this.offset, this.size, this.size); 
     }
-    gameGrid.fill('white'); 
     strokeWeight(1);
   }
   
@@ -332,7 +385,7 @@ class Game {
 class Snake {
   constructor(game) {
     this.game = game;
-    this.gridSize = game.tileSize; // Number of tiles in the grid (grid is square => just one dimension needed)
+    this.gridSize = game.numOfTiles; // Number of tiles in the grid (grid is square => just one dimension needed)
     
     this.head = {};
     this.body = [];
@@ -366,6 +419,9 @@ class Snake {
     this.direction = this.newDirection; 
     this.body.push(newHead); // Add newHead to the body
     this.head = newHead; // Set the new head
+
+    console.log('this.head.x', this.head.x);
+    console.log('this.gridSize', this.gridSize);
 
     // Check for collision with walls
     if (this.head.x < 0 || this.head.x >= this.gridSize 
@@ -409,24 +465,41 @@ class Food {
 }
 
 let img;
+let bomba32;
+let snaking;
 function preload() {
   // Load any assets here if needed
   img = loadImage('./assets/images/catFaceRight.png');
+  console.info('Image loaded');
+  
+  soundFormats('mp3'); // Load sound formats
+  bomba32 = loadSound('./assets/music/bomba_32', 
+    () => console.info('🎵 Bomba fully loaded!'),
+    err => console.error('Sound load failed:', err)
+  );
+  snaking = loadSound('./assets/music/snaking', 
+    () => console.info('🎵 Snaking fully loaded!'),
+    err => console.error('Sound load failed:', err)
+  );
 }
 
-let screenManager = null; // Global variable to manage screens
+let canvas;
+let screenManager; // Global variable to manage screens
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  console.log('Width =', width, 'Height =', height);
-  console.log('Is an iphone -' + /iPhone/i.test(navigator.userAgent));
-  console.log('Is an android -' + /Android/i.test(navigator.userAgent));
-  console.log('Is a mobile phone -' + /Mobile/i.test(navigator.userAgent)); // didn't work with Ipad
+  canvas = createCanvas(windowWidth, windowHeight);
+  console.info('Width =', width, 'Height =', height);
+  console.info('User is an iphone -' + /iPhone/i.test(navigator.userAgent));
+  console.info('User is an android -' + /Android/i.test(navigator.userAgent));
+  console.info('User is a mobile phone -' + /Mobile/i.test(navigator.userAgent)); // didn't work with Ipad
+
 
   screenManager = new ScreenManager();
-  screenManager.addScreen('mainMenu', new MainMenu());
-  screenManager.addScreen('gameplay', new Gameplay());
+  screenManager.addScreen('webpageLoaded', new WebpageLoaded());
+  screenManager.addScreen('mainMenu', new MainMenu(snaking));
+  screenManager.addScreen('gameplay', new Gameplay(bomba32));
   screenManager.addScreen('gameOver', new GameOver());
-  screenManager.setActiveScreen('mainMenu');
+  screenManager.setActiveScreen('webpageLoaded');
+  
 
   textSize(32);
   textAlign(CENTER, CENTER);
@@ -439,4 +512,9 @@ function draw() {
 // keyBoard events
 function keyPressed() {
   screenManager.keyPressed(keyCode);
+}
+
+// mouse events
+function mousePressed() {
+  screenManager.mousePressed();
 }
