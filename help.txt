@@ -2,4 +2,7 @@ FUNCS:
 createCanvas() - default Canvas
 
 TODO:
-- screen size change event -> reinitialize
+- game package (server needed to play)?
+- pokial nejaky asset neziska tak sa nikdy neloadne
+- screen size change event not during gameplay -> reinitialize
+

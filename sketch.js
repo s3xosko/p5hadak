@@ -1,8 +1,6 @@
 class Screen {
-  constructor(name, sounds = {}) {
+  constructor(name) {
     this.name = name;
-    this.sounds = sounds;
-    this.backgroundSound = null;
   }
   
   onActivation(properties) {};          // Method that should be called when the screen is becoming active
@@ -11,8 +9,7 @@ class Screen {
   keyPressed(keyCode) {};               // Method that handles key presses 
   mousePressed() {};                    // Method that handles mouse presses
   
-  playSound(soundName) {};
-  playBackgroundSound(soundName) {};
+  // Note: You can add more custom methods as needed for your screens
 }
 
 class ScreenManager {
@@ -77,6 +74,76 @@ class ScreenManager {
   }
 }
 
+class MusicManager {
+  constructor() {
+    this.music = {};
+    this.volume = 100;
+  }
+
+  addMusic(name, sound) {
+    if (this.music[name]) {
+      console.warn(`Music "${name}" already exists. Overwriting.`);
+    }
+    this.music[name] = sound;
+  }
+
+  playMusic(name, loop = false) {
+    if (this.music[name]) {
+      if (!loop) {
+        this.music[name].play();
+      } else {
+        this.music[name].loop();
+      }
+    } else {
+      console.error(`Music "${name}" does not exist.`);
+    }
+  }
+  
+  pauseMusic(name) {
+    if (this.music[name] && this.music[name].isPlaying()) {
+      this.music[name].pause();
+    } else {
+      console.error(`Music "${name}" does not exist or is not playing.`);
+    }
+  }
+  
+  stopMusic(name) {
+    if (this.music[name] && this.music[name].isPlaying()) {
+      this.music[name].stop();
+    } else {
+      console.error(`Music "${name}" does not exist or is not playing.`);
+    }
+  }
+}
+
+class SfxManager {
+  constructor() {
+    this.sfx = {};
+    this.volume = 100;
+  }
+
+  addSfx(name, sound) {
+    if (this.sfx[name]) {
+      console.warn(`Sound effect "${name}" already exists. Overwriting.`);
+    }
+    this.sfx[name] = sound;
+  }
+  playSfx(name) {
+    if (this.sfx[name]) {
+      this.sfx[name].play();
+    } else {
+      console.error(`Sound effect "${name}" does not exist.`);
+    }
+  }
+  removeSfx(name) {
+    if (this.sfx[name]) {
+      delete this.sfx[name];
+    } else {
+      console.error(`Sound effect "${name}" does not exist.`);
+    }
+  }
+}
+
 class WebpageLoaded extends Screen {
   constructor() {
     super('webpageLoaded');
@@ -110,19 +177,18 @@ class WebpageLoaded extends Screen {
 }
 
 class MainMenu extends Screen {
-  constructor(backgroundSound) {
+  constructor() {
     super('mainMenu');
-    this.backgroundSound = backgroundSound;
     this.options = ['Start game', 'Instructions', 'Credits', 'Exit'];
     this.optionSelected = 0; // Index of the currently selected option
   }
 
   onActivation() {
-    this.backgroundSound.loop();
+    musicManager.playMusic('mainMenu', true); // Play the main menu music in a loop
   }
 
   onDeactivation() {
-    this.backgroundSound.stop();
+    musicManager.stopMusic('mainMenu'); // Stop the main menu music when leaving the screen
   }
   
   selectOption() {
@@ -170,20 +236,19 @@ class MainMenu extends Screen {
 }
 
 class Gameplay extends Screen {
-  constructor(backgroundSound) {
+  constructor() {
     super('gameplay');
-    this.backgroundSound = backgroundSound;
-    this.game = new Game();
+    this.game = new Game(this);
   }
   
   onActivation() {
     background('white');
     this.game.reset();
-    this.backgroundSound.loop();
+    musicManager.playMusic('bomba32', true); // Play the background music in a loop
   }
   
   onDeactivation() {
-    this.backgroundSound.stop();
+    musicManager.stopMusic('bomba32'); // Stop the background music when leaving the screen
   }
 
   draw() {
@@ -228,7 +293,9 @@ class GameOver extends Screen {
 }
 
 class Game {
-  constructor() {
+  constructor(screen) {
+    this.screen = screen;
+
     // game dimensions properties
     this.landscape = true, // Landscape mode (true) or portrait mode (false)
     this.size = 0, // Size of the game area (area is a square => just one dimension needed)
@@ -437,6 +504,7 @@ class Snake {
     // Check for collision with food
     const food = this.game.food;
     if (this.head.x === food.position.x && this.head.y === food.position.y) {
+      sfxManager.playSfx('robloxEating'); // Play eating sound effect
       this.length++;
       this.game.updateScore(1);
       food.spawn(this.head, this.body); // Respawn food
@@ -468,20 +536,38 @@ class Food {
 let img;
 let bomba32;
 let snaking;
+let nomnomnom;
+let sfxManager, musicManager; // Global variables to manage sound effects and music
 function preload() {
   // Load any assets here if needed
   img = loadImage('./assets/images/catFaceRight.png');
   console.info('Image loaded');
   
   soundFormats('mp3'); // Load sound formats
-  bomba32 = loadSound('./assets/music/bomba_32', 
-    () => console.info('🎵 Bomba fully loaded!'),
-    err => console.error('Sound load failed:', err)
-  );
-  snaking = loadSound('./assets/music/snaking', 
-    () => console.info('🎵 Snaking fully loaded!'),
-    err => console.error('Sound load failed:', err)
-  );
+
+  sfxManager = new SfxManager();
+  const sfx = ['robloxEating', 'eatingMinecraft'];
+  for (const name of sfx) {
+    const soundEffect = loadSound(`./assets/sounds/${name}`,
+      () => {
+        console.info(`🎵 ${name} fully loaded!`);
+        sfxManager.addSfx(name, soundEffect);
+      },
+      err => console.warn(`🎵 ${name} load failed:`, err)
+    );
+  }
+  
+  musicManager = new MusicManager(); 
+  const music = ['bomba32', 'mainMenu'];
+  for (const name of music) {
+    const sound = loadSound(`./assets/music/${name}`,
+      () => {
+        console.info(`🎵 ${name} fully loaded!`);
+        musicManager.addMusic(name, sound);
+      },
+      err => console.warn(`🎵 ${name} load failed:`, err)
+    );
+  }
 }
 
 let canvas;
@@ -496,8 +582,8 @@ function setup() {
 
   screenManager = new ScreenManager();
   screenManager.addScreen('webpageLoaded', new WebpageLoaded());
-  screenManager.addScreen('mainMenu', new MainMenu(snaking));
-  screenManager.addScreen('gameplay', new Gameplay(bomba32));
+  screenManager.addScreen('mainMenu', new MainMenu());
+  screenManager.addScreen('gameplay', new Gameplay());
   screenManager.addScreen('gameOver', new GameOver());
   screenManager.setActiveScreen('webpageLoaded');
   
