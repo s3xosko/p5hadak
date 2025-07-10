@@ -1,3 +1,129 @@
+class ImageManager {
+  constructor() {
+    this.images = {};
+  }
+
+  preload(images) {
+    for (const name of images) {
+      const image = loadImage(`./assets/images/${name}`,
+        () => {
+          console.info(`Image ${name} fully loaded!`);
+          this.addImage(name, image);
+        },
+        err => console.warn(`Image ${name} load failed:`, err)
+      );
+    }
+  }
+
+  addImage(name, image) {
+    if (this.images[name]) {
+      console.warn(`Image "${name}" already exists. Overwriting.`);
+    }
+    this.images[name] = image;
+  }
+
+  getImage(name) {
+    return this.images[name];
+  }
+}
+
+
+class SfxManager {
+  constructor() {
+    this.sfx = {};
+    this.volume = 100;
+  }
+
+  preload(sfx) {
+    for (const name of sfx) {
+      const soundEffect = loadSound(`./assets/sounds/${name}`,
+        () => {
+          console.info(`🎵 ${name} fully loaded!`);
+          this.addSfx(name, soundEffect);
+        },
+        err => console.warn(`🎵 ${name} load failed:`, err)
+      );
+    }
+  }
+
+  addSfx(name, sound) {
+    if (this.sfx[name]) {
+      console.warn(`Sound effect "${name}" already exists. Overwriting.`);
+    }
+    this.sfx[name] = sound;
+  }
+  playSfx(name) {
+    if (this.sfx[name]) {
+      this.sfx[name].play();
+    } else {
+      console.error(`Sound effect "${name}" does not exist.`);
+    }
+  }
+  removeSfx(name) {
+    if (this.sfx[name]) {
+      delete this.sfx[name];
+    } else {
+      console.error(`Sound effect "${name}" does not exist.`);
+    }
+  }
+}
+
+
+class MusicManager {
+  constructor() {
+    this.music = {};
+    this.volume = 100;
+  }
+
+  preload(music) {
+    for (const name of music) {
+      const sound = loadSound(`./assets/music/${name}`,
+        () => {
+          console.info(`🎵 ${name} fully loaded!`);
+          this.addMusic(name, sound);
+        },
+        err => console.warn(`🎵 ${name} load failed:`, err)
+      );
+    }
+  }
+
+  addMusic(name, sound) {
+    if (this.music[name]) {
+      console.warn(`Music "${name}" already exists. Overwriting.`);
+    }
+    this.music[name] = sound;
+  }
+
+  playMusic(name, loop = false) {
+    if (this.music[name]) {
+      if (!loop) {
+        this.music[name].play();
+      } else {
+        this.music[name].loop();
+      }
+    } else {
+      console.error(`Music "${name}" does not exist.`);
+    }
+  }
+  
+  pauseMusic(name) {
+    if (this.music[name] && this.music[name].isPlaying()) {
+      this.music[name].pause();
+    } else {
+      console.error(`Music "${name}" does not exist or is not playing.`);
+    }
+  }
+  
+  stopMusic(name) {
+    if (this.music[name] && this.music[name].isPlaying()) {
+      this.music[name].stop();
+    } else {
+      console.error(`Music "${name}" does not exist or is not playing.`);
+    }
+  }
+}
+
+
 class Screen {
   constructor(name) {
     this.name = name;
@@ -74,128 +200,6 @@ class ScreenManager {
   }
 }
 
-class MusicManager {
-  constructor() {
-    this.music = {};
-    this.volume = 100;
-  }
-
-  preload(music) {
-    for (const name of music) {
-      const sound = loadSound(`./assets/music/${name}`,
-        () => {
-          console.info(`🎵 ${name} fully loaded!`);
-          this.addMusic(name, sound);
-        },
-        err => console.warn(`🎵 ${name} load failed:`, err)
-      );
-    }
-  }
-
-  addMusic(name, sound) {
-    if (this.music[name]) {
-      console.warn(`Music "${name}" already exists. Overwriting.`);
-    }
-    this.music[name] = sound;
-  }
-
-  playMusic(name, loop = false) {
-    if (this.music[name]) {
-      if (!loop) {
-        this.music[name].play();
-      } else {
-        this.music[name].loop();
-      }
-    } else {
-      console.error(`Music "${name}" does not exist.`);
-    }
-  }
-  
-  pauseMusic(name) {
-    if (this.music[name] && this.music[name].isPlaying()) {
-      this.music[name].pause();
-    } else {
-      console.error(`Music "${name}" does not exist or is not playing.`);
-    }
-  }
-  
-  stopMusic(name) {
-    if (this.music[name] && this.music[name].isPlaying()) {
-      this.music[name].stop();
-    } else {
-      console.error(`Music "${name}" does not exist or is not playing.`);
-    }
-  }
-}
-
-class SfxManager {
-  constructor() {
-    this.sfx = {};
-    this.volume = 100;
-  }
-
-  preload(sfx) {
-    for (const name of sfx) {
-      const soundEffect = loadSound(`./assets/sounds/${name}`,
-        () => {
-          console.info(`🎵 ${name} fully loaded!`);
-          this.addSfx(name, soundEffect);
-        },
-        err => console.warn(`🎵 ${name} load failed:`, err)
-      );
-    }
-  }
-
-  addSfx(name, sound) {
-    if (this.sfx[name]) {
-      console.warn(`Sound effect "${name}" already exists. Overwriting.`);
-    }
-    this.sfx[name] = sound;
-  }
-  playSfx(name) {
-    if (this.sfx[name]) {
-      this.sfx[name].play();
-    } else {
-      console.error(`Sound effect "${name}" does not exist.`);
-    }
-  }
-  removeSfx(name) {
-    if (this.sfx[name]) {
-      delete this.sfx[name];
-    } else {
-      console.error(`Sound effect "${name}" does not exist.`);
-    }
-  }
-}
-
-class ImageManager {
-  constructor() {
-    this.images = {};
-  }
-
-  preload(images) {
-    for (const name of images) {
-      const image = loadImage(`./assets/images/${name}`,
-        () => {
-          console.info(`Image ${name} fully loaded!`);
-          this.addImage(name, image);
-        },
-        err => console.warn(`Image ${name} load failed:`, err)
-      );
-    }
-  }
-
-  addImage(name, image) {
-    if (this.images[name]) {
-      console.warn(`Image "${name}" already exists. Overwriting.`);
-    }
-    this.images[name] = image;
-  }
-
-  getImage(name) {
-    return this.images[name];
-  }
-}
 
 class WebpageLoaded extends Screen {
   constructor() {
