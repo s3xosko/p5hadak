@@ -168,6 +168,35 @@ class SfxManager {
   }
 }
 
+class ImageManager {
+  constructor() {
+    this.images = {};
+  }
+
+  preload(images) {
+    for (const name of images) {
+      const image = loadImage(`./assets/images/${name}`,
+        () => {
+          console.info(`Image ${name} fully loaded!`);
+          this.addImage(name, image);
+        },
+        err => console.warn(`Image ${name} load failed:`, err)
+      );
+    }
+  }
+
+  addImage(name, image) {
+    if (this.images[name]) {
+      console.warn(`Image "${name}" already exists. Overwriting.`);
+    }
+    this.images[name] = image;
+  }
+
+  getImage(name) {
+    return this.images[name];
+  }
+}
+
 class WebpageLoaded extends Screen {
   constructor() {
     super('webpageLoaded');
@@ -177,7 +206,7 @@ class WebpageLoaded extends Screen {
     background('white');
     // imageMode(CENTER);
     image(
-      img,
+      imageManager.getImage('catFaceRight.png'),
       width/2-50, height/2-50,
       100, 100
     );
@@ -380,9 +409,9 @@ class Game {
       // draw snake's head
       const head = this.snake.head;
       if (this.landscape) {
-        image(img, this.offset+head.x*this.tileSize, head.y*this.tileSize, this.tileSize, this.tileSize);
+        image(imageManager.getImage('catFaceRight.png'), this.offset+head.x*this.tileSize, head.y*this.tileSize, this.tileSize, this.tileSize);
       } else {
-        image(img, head.x*this.tileSize, this.offset+head.y*this.tileSize, this.tileSize, this.tileSize);
+        image(imageManager.getImage('catFaceRight.png'), head.x*this.tileSize, this.offset+head.y*this.tileSize, this.tileSize, this.tileSize);
       }
       // draw food
       if (this.landscape) {
@@ -557,19 +586,15 @@ class Food {
   }
 }
 
-let img;
-let bomba32;
-let snaking;
-let nomnomnom;
-let sfxManager, musicManager; // Global variables to manage sound effects and music
-// let imageManager;             // Global variable to manage images
-function preload() {
-  // Load any assets here if needed
-  img = loadImage('./assets/images/catFaceRight.png');
-  console.info('Image loaded');
-  
-  soundFormats('mp3'); // Load sound formats
 
+let imageManager;             // Global variable to manage images
+let sfxManager, musicManager; // Global variables to manage sound effects and music
+function preload() {
+  const images = ['catFaceRight.png']
+  imageManager = new ImageManager();
+  imageManager.preload(images);
+  
+  soundFormats('mp3'); // supported formats
   const sfx = ['robloxEating', 'eatingMinecraft'];
   sfxManager = new SfxManager();
   sfxManager.preload(sfx);
@@ -578,6 +603,7 @@ function preload() {
   musicManager = new MusicManager(); 
   musicManager.preload(music);
 }
+
 
 let canvas;
 let screenManager; // Global variable to manage screens
