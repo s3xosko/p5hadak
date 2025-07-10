@@ -80,6 +80,18 @@ class MusicManager {
     this.volume = 100;
   }
 
+  preload(music) {
+    for (const name of music) {
+      const sound = loadSound(`./assets/music/${name}`,
+        () => {
+          console.info(`🎵 ${name} fully loaded!`);
+          this.addMusic(name, sound);
+        },
+        err => console.warn(`🎵 ${name} load failed:`, err)
+      );
+    }
+  }
+
   addMusic(name, sound) {
     if (this.music[name]) {
       console.warn(`Music "${name}" already exists. Overwriting.`);
@@ -120,6 +132,18 @@ class SfxManager {
   constructor() {
     this.sfx = {};
     this.volume = 100;
+  }
+
+  preload(sfx) {
+    for (const name of sfx) {
+      const soundEffect = loadSound(`./assets/sounds/${name}`,
+        () => {
+          console.info(`🎵 ${name} fully loaded!`);
+          this.addSfx(name, soundEffect);
+        },
+        err => console.warn(`🎵 ${name} load failed:`, err)
+      );
+    }
   }
 
   addSfx(name, sound) {
@@ -538,6 +562,7 @@ let bomba32;
 let snaking;
 let nomnomnom;
 let sfxManager, musicManager; // Global variables to manage sound effects and music
+// let imageManager;             // Global variable to manage images
 function preload() {
   // Load any assets here if needed
   img = loadImage('./assets/images/catFaceRight.png');
@@ -545,29 +570,13 @@ function preload() {
   
   soundFormats('mp3'); // Load sound formats
 
-  sfxManager = new SfxManager();
   const sfx = ['robloxEating', 'eatingMinecraft'];
-  for (const name of sfx) {
-    const soundEffect = loadSound(`./assets/sounds/${name}`,
-      () => {
-        console.info(`🎵 ${name} fully loaded!`);
-        sfxManager.addSfx(name, soundEffect);
-      },
-      err => console.warn(`🎵 ${name} load failed:`, err)
-    );
-  }
+  sfxManager = new SfxManager();
+  sfxManager.preload(sfx);
   
-  musicManager = new MusicManager(); 
   const music = ['bomba32', 'mainMenu'];
-  for (const name of music) {
-    const sound = loadSound(`./assets/music/${name}`,
-      () => {
-        console.info(`🎵 ${name} fully loaded!`);
-        musicManager.addMusic(name, sound);
-      },
-      err => console.warn(`🎵 ${name} load failed:`, err)
-    );
-  }
+  musicManager = new MusicManager(); 
+  musicManager.preload(music);
 }
 
 let canvas;
