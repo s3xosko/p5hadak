@@ -5,7 +5,7 @@ class ImageManager {
 
   preload(images) {
     for (const name of images) {
-      const image = loadImage(`./assets/images/${name}`,
+      const image = loadImage(`assets/images/${name}`,
         () => {
           console.info(`Image ${name} fully loaded!`);
           this.addImage(name, image);
@@ -36,7 +36,7 @@ class SfxManager {
 
   preload(sfx) {
     for (const name of sfx) {
-      const soundEffect = loadSound(`./assets/sounds/${name}`,
+      const soundEffect = loadSound(`assets/sounds/${name}`,
         () => {
           console.info(`🎵 ${name} fully loaded!`);
           this.addSfx(name, soundEffect);
@@ -77,7 +77,7 @@ class MusicManager {
 
   preload(music) {
     for (const name of music) {
-      const sound = loadSound(`./assets/music/${name}`,
+      const sound = loadSound(`assets/music/${name}`,
         () => {
           console.info(`🎵 ${name} fully loaded!`);
           this.addMusic(name, sound);
