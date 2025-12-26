@@ -1,0 +1,1 @@
+Place the p5.min.js and p5.sound.min.js files directly into this folder (not into the subfolders).
