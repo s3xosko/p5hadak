@@ -2,7 +2,10 @@ FUNCS:
 createCanvas() - default Canvas
 
 TODO:
-- game package (server needed to play)?
+
+- pri zomreti sa nakresli este screen jak si za stenou
+- pri resete hry sa napriklad cas zle nastavi asi - lebo droga tam hned je
+
 - pokial nejaky asset neziska tak sa nikdy neloadne
 - screen size change event not during gameplay -> reinitialize
-
+- playable package = make github pages 

@@ -367,12 +367,16 @@ class Game {
     this.walls = null; // Walls object (not implemented yet)
     this.lastMoveTime = 0;
     this.moveInterval = 100;
+    
+    this.drug = null; // Drug object
+    this.effect = null; // Current effect of the drug
   }
 
   reset() {
     this._initializeDimensions();
     this._initializeSnake();
     this._initializeFood();
+    this._initializeDrug();
 
     this.score = 0;
   }
@@ -390,10 +394,24 @@ class Game {
   }
 
   draw() {
-    // background(Math.random()*255, Math.random()*255, Math.random()*255); //-> get MDMA effect
+    const currentTime = millis();
+    // handle the drug effects
+    if (this.snake.drugged) {
+      if (this.snake.drugEaten === 'mdma') {
+        background(Math.random()*255, Math.random()*255, Math.random()*255);
+      }
 
-    if (millis() - this.lastMoveTime > this.moveInterval) {
-      this.lastMoveTime = millis();
+      if (currentTime - this.snake.drugEatenTime > 5000) {
+        this.snake.sober();
+        console.info('The snake is sober now.');
+        background('white'); // reset background
+      }
+    } else {
+      this.drug.spawn(this.snake.head, this.snake.body, this.food.position, currentTime); // Try to spawn drug
+    }
+    
+    if (currentTime - this.lastMoveTime > this.moveInterval) {
+      this.lastMoveTime = currentTime;
       const alive = this.snake.move(); // Move the snake
       if (!alive) {
         this.over(); 
@@ -422,6 +440,14 @@ class Game {
         circle(this.offset+this.food.position.x*this.tileSize+this.tileSize/2, this.food.position.y*this.tileSize+this.tileSize/2, this.tileSize)
       } else {
         circle(this.food.position.x*this.tileSize+this.tileSize/2, this.offset+this.food.position.y*this.tileSize+this.tileSize/2, this.tileSize);
+      }
+      // draw drug
+      if (this.drug.spawned) {
+        if (this.landscape) {
+          image(imageManager.getImage('pixelArtMdma.png'), this.offset+this.drug.position.x*this.tileSize, this.drug.position.y*this.tileSize, this.tileSize, this.tileSize);
+        } else {
+          image(imageManager.getImage('pixelArtMdma.png'), this.drug.position.x*this.tileSize, this.offset+this.drug.position.y*this.tileSize, this.tileSize, this.tileSize);
+        }
       }
     }
   }
@@ -505,6 +531,10 @@ class Game {
     this.food = new Food(this);
     this.food.spawn(this.snake.head, this.snake.body); // Initial spawn of food
   }
+
+  _initializeDrug() {
+    this.drug = new Drug(this);
+  }
 }
 
 class Snake {
@@ -519,12 +549,16 @@ class Snake {
     // two properties to prevent possibility of snake trying to move in the opposite direction as he is currently moving
     this.direction = '';
     this.newDirection = '';
+
+    this.drugged = false;
+    this.drugEaten = null;
+    this.drugEatenTime = 0;
   }
 
   move() {
     const newHead = {x: this.head.x, y: this.head.y};
     
-    console.log('direction', this.newDirection);
+    // console.log('direction', this.newDirection);
     // move the head in the new direction
     switch (this.newDirection) {
       case 'up':
@@ -545,8 +579,8 @@ class Snake {
     this.body.push(newHead); // Add newHead to the body
     this.head = newHead; // Set the new head
 
-    console.log('this.head.x', this.head.x);
-    console.log('this.gridSize', this.gridSize);
+    // console.log('this.head.x', this.head.x);
+    // console.log('this.gridSize', this.gridSize);
 
     // Check for collision with walls
     if (this.head.x < 0 || this.head.x >= this.gridSize 
@@ -569,7 +603,25 @@ class Snake {
       this.body.shift(); // Remove the tail segment if the snake hasn't eaten
     }
 
+    // Check for collision with drug
+    const drug = this.game.drug;
+    if (drug.spawned && this.head.x === drug.position.x && this.head.y === drug.position.y) {
+      if (drug.type === 'mdma') { 
+        sfxManager.playSfx('eatingMinecraft');
+      }
+      this.drugged = true;
+      this.drugEaten = drug.type;
+      this.drugEatenTime = millis();
+      drug.spawned = false; // Remove the drug from the game area
+    }
+
     return true; // Snake is still alive
+  }
+
+  sober() {
+    this.drugged = false;
+    this.drugEaten = null;
+    this.drugEatenTime = 0;
   }
 }
 
@@ -590,11 +642,47 @@ class Food {
   }
 }
 
+class Drug {
+  constructor(game) {
+    this.game = game;
+    this.gridSize = game.numOfTiles; // Number of tiles in the grid (grid is square => just one dimension needed)
+    this.position = {x: -1, y: -1}; // Position of the food in the grid
+    this.type = null; // Type of drug (e.g., 'mdma', 'lsd', etc.)
+    this.spawnInterval = 15000; // Interval to spawn the drug (in milliseconds)
+    this.lastSpawnTime = 0;
+    this.spawned = false;
+  }
+
+  spawn(snakeHead, snakeBody, foodPosition, currentTime) {
+    if (this.spawned || currentTime - this.lastSpawnTime < this.spawnInterval) {
+      return; // Not time to spawn yet
+    }
+
+    // Randomly place drug in the grid, ensuring it doesn't overlap with the snake or food
+    do {
+      this.position.x = Math.floor(Math.random() * this.gridSize);
+      this.position.y = Math.floor(Math.random() * this.gridSize);
+    } while ((this.position.x === snakeHead.x && this.position.y === snakeHead.y) ||
+             snakeBody.some(segment => segment.x === this.position.x && segment.y === this.position.y) ||
+             (this.position.x === foodPosition.x && this.position.y === foodPosition.y));
+    
+    this.spawned = true;
+    this.type = this._randomDrugType();
+    this.lastSpawnTime = currentTime;
+  }
+
+  _randomDrugType() {
+    const drugTypes = ['mdma'];//, 'lsd', 'marihuana', 'mushrooms'];
+    const randomIndex = Math.floor(Math.random() * drugTypes.length);
+    return drugTypes[randomIndex];
+  }
+}
+
 
 let imageManager;             // Global variable to manage images
 let sfxManager, musicManager; // Global variables to manage sound effects and music
 function preload() {
-  const images = ['catFaceRight.png']
+  const images = ['catFaceRight.png', 'pixelArtMdma.png'];
   imageManager = new ImageManager();
   imageManager.preload(images);
   
