@@ -417,6 +417,7 @@ class Game {
       const alive = this.snake.move(); // Move the snake
       if (!alive) {
         this.over(); 
+        return; // if you want to show going into the wall remove this return
       }
 
       // draw walls (game area)
