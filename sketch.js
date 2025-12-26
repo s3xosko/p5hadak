@@ -373,10 +373,12 @@ class Game {
   }
 
   reset() {
+    const currentTime = millis();
+    this.lastMoveTime = currentTime;
     this._initializeDimensions();
     this._initializeSnake();
     this._initializeFood();
-    this._initializeDrug();
+    this._initializeDrug(currentTime);
 
     this.score = 0;
   }
@@ -532,8 +534,8 @@ class Game {
     this.food.spawn(this.snake.head, this.snake.body); // Initial spawn of food
   }
 
-  _initializeDrug() {
-    this.drug = new Drug(this);
+  _initializeDrug(initialTime) {
+    this.drug = new Drug(this, initialTime);
   }
 }
 
@@ -643,13 +645,13 @@ class Food {
 }
 
 class Drug {
-  constructor(game) {
+  constructor(game, initialTime = 0) {
     this.game = game;
     this.gridSize = game.numOfTiles; // Number of tiles in the grid (grid is square => just one dimension needed)
     this.position = {x: -1, y: -1}; // Position of the food in the grid
     this.type = null; // Type of drug (e.g., 'mdma', 'lsd', etc.)
     this.spawnInterval = 15000; // Interval to spawn the drug (in milliseconds)
-    this.lastSpawnTime = 0;
+    this.lastSpawnTime = initialTime;
     this.spawned = false;
   }
 
